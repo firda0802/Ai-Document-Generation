@@ -22,11 +22,12 @@ export async function getFirebaseToken(): Promise<string | null> {
 /**
  * Create headers with Firebase authentication
  * Note: Do NOT include Content-Type - supabase.functions.invoke handles it automatically
+ * Throws an error if not authenticated
  */
 export async function getAuthHeaders(): Promise<Record<string, string>> {
   const token = await getFirebaseToken();
   if (!token) {
-    return {};
+    throw new Error("Please sign in to continue");
   }
   
   return {
