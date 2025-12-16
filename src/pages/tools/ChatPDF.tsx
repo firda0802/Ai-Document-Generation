@@ -12,6 +12,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { ToolHero, ToolSuggestionCards } from "@/components/tools";
 import { SEOArticle } from "@/components/seo/SEOArticle";
 import { chatPDFArticle } from "@/data/toolSEOArticles";
+import { getAuthHeaders } from "@/hooks/useFirebaseAuth";
 
 export default function ChatPDF() {
   const { user, loading: authLoading } = useAuth();
@@ -116,12 +117,14 @@ export default function ChatPDF() {
     setQuestion("");
 
     try {
+      const headers = await getAuthHeaders();
       const { data, error } = await supabase.functions.invoke('chat-pdf', {
         body: { 
           pdfContent,
           question: currentQuestion,
           fileName: file.name
-        }
+        },
+        headers,
       });
 
       if (error) throw error;

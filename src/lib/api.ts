@@ -1,14 +1,48 @@
-import { db } from "./firebase";
+import { db, auth } from "./firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { supabase } from "@/integrations/supabase/client";
 
+/**
+ * Get Firebase ID token for authenticated requests
+ */
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error("Please sign in to continue");
+  }
+  
+  const token = await user.getIdToken();
+  return {
+    Authorization: `Bearer ${token}`,
+  };
+}
+
+/**
+ * Invoke a Supabase edge function with Firebase authentication
+ */
+export async function invokeEdgeFunction<T = any>(
+  functionName: string,
+  body: Record<string, any>
+): Promise<T> {
+  const headers = await getAuthHeaders();
+  
+  const { data, error } = await supabase.functions.invoke(functionName, {
+    body,
+    headers,
+  });
+
+  if (error) {
+    console.error(`Edge function ${functionName} error:`, error);
+    throw error;
+  }
+
+  return data as T;
+}
+
 export async function generateContent(prompt: string, type: "document" | "presentation" | "story" | "writer" = "document") {
   try {
-    const { data, error } = await supabase.functions.invoke('generate-content', {
-      body: { prompt, type }
-    });
-
-    if (error) throw error;
+    const data = await invokeEdgeFunction<{ content: string }>('generate-content', { prompt, type });
+    
     if (!data?.content) throw new Error("No content generated");
 
     return data.content;

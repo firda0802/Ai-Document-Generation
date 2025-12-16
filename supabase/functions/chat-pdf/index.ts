@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, unauthorizedResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,7 +8,7 @@ const corsHeaders = {
 
 // Input validation limits
 const MAX_QUESTION_LENGTH = 2000;
-const MAX_PDF_TEXT_LENGTH = 100000;
+const MAX_PDF_CONTENT_LENGTH = 5000000; // ~5MB base64
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -16,71 +16,55 @@ serve(async (req) => {
   }
 
   try {
+    // Authenticate request using Firebase token
+    const auth = await authenticateRequest(req);
+    
+    if (auth.error) {
+      console.error("Authentication failed:", auth.error);
+      return unauthorizedResponse(corsHeaders, auth.error);
+    }
+
+    const { userId, isPremium } = auth;
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Authenticate user
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    const { question, pdfContent, fileName } = await req.json();
+
+    if (!question || !pdfContent) {
       return new Response(
-        JSON.stringify({ error: 'Authentication required' }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid authentication' }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const { question, pdfText } = await req.json();
-
-    if (!question || !pdfText) {
-      return new Response(
-        JSON.stringify({ error: "Question and PDF text are required" }),
+        JSON.stringify({ error: "Question and PDF content are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Input validation to prevent abuse and resource exhaustion
+    // Input validation
     if (typeof question !== 'string' || question.length > MAX_QUESTION_LENGTH) {
-      console.warn(`Input validation failed: question length ${question?.length} exceeds limit ${MAX_QUESTION_LENGTH} for user ${user.id}`);
+      console.warn(`Input validation failed: question length ${question?.length} exceeds limit ${MAX_QUESTION_LENGTH} for user ${userId}`);
       return new Response(
         JSON.stringify({ error: `Question exceeds maximum length of ${MAX_QUESTION_LENGTH} characters` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (typeof pdfText !== 'string' || pdfText.length > MAX_PDF_TEXT_LENGTH) {
-      console.warn(`Input validation failed: pdfText length ${pdfText?.length} exceeds limit ${MAX_PDF_TEXT_LENGTH} for user ${user.id}`);
+    if (typeof pdfContent !== 'string' || pdfContent.length > MAX_PDF_CONTENT_LENGTH) {
+      console.warn(`Input validation failed: pdfContent length ${pdfContent?.length} exceeds limit ${MAX_PDF_CONTENT_LENGTH} for user ${userId}`);
       return new Response(
-        JSON.stringify({ error: `PDF text exceeds maximum length of ${MAX_PDF_TEXT_LENGTH} characters` }),
+        JSON.stringify({ error: `PDF content is too large. Please use a smaller file.` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`Processing PDF question from user ${user.id}, question length: ${question.length}, pdf length: ${pdfText.length}`);
+    console.log(`Processing PDF question from user ${userId} (premium: ${isPremium}), question length: ${question.length}, file: ${fileName || 'unknown'}`);
 
+    // Create a prompt that includes the PDF content for analysis
     const systemPrompt = `You are an AI assistant specialized in analyzing and answering questions about PDF documents. 
-You have been given the text content of a PDF document. Answer the user's question based ONLY on the information 
+You have been given base64-encoded PDF content. Analyze the document and answer the user's question based ONLY on the information 
 in the document. If the answer cannot be found in the document, clearly state that the information is not available 
 in the provided document.
-
-Document Content:
-${pdfText.substring(0, 50000)}
 
 Instructions:
 - Be precise and quote relevant parts when possible
@@ -98,7 +82,19 @@ Instructions:
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: question },
+          { 
+            role: "user", 
+            content: [
+              { type: "text", text: question },
+              { 
+                type: "file", 
+                file: { 
+                  filename: fileName || "document.pdf",
+                  file_data: `data:application/pdf;base64,${pdfContent}`
+                }
+              }
+            ]
+          },
         ],
         temperature: 0.3,
         max_tokens: 2000,
@@ -106,6 +102,9 @@ Instructions:
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error("AI gateway error:", response.status, errorText);
+      
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
@@ -119,8 +118,6 @@ Instructions:
         );
       }
 
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
       throw new Error(`AI gateway error: ${response.status}`);
     }
 
@@ -131,10 +128,10 @@ Instructions:
       throw new Error("No answer generated");
     }
 
-    console.log(`PDF question answered successfully for user ${user.id}`);
+    console.log(`PDF question answered successfully for user ${userId}`);
 
     return new Response(
-      JSON.stringify({ answer }),
+      JSON.stringify({ response: answer }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
