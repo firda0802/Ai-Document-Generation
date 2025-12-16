@@ -39,6 +39,7 @@ function AnimatedRoutes() {
         <Route path="/" element={<PageTransition><Index /></PageTransition>} />
         
         {/* Auth routes */}
+        <Route path="/auth" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<PageTransition><Auth mode="signin" /></PageTransition>} />
         <Route path="/signup" element={<PageTransition><Auth mode="signup" /></PageTransition>} />
         <Route path="/terms" element={<PageTransition><Terms /></PageTransition>} />
