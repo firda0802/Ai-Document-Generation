@@ -20,6 +20,11 @@ import {
   Settings,
   Wrench,
   Bot,
+  Video,
+  PenTool,
+  Upload,
+  BookOpen,
+  Sparkles,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -95,15 +100,23 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { to: "/tools/pdf-generator", icon: FileText, label: "PDF", color: "text-red-500" },
     { to: "/tools/presentation-maker", icon: Presentation, label: "Presentation", color: "text-orange-500" },
     { to: "/tools/spreadsheet-maker", icon: FileSpreadsheet, label: "Spreadsheet", color: "text-green-500" },
+    { to: "/tools/word-editor", icon: PenTool, label: "Word Editor", color: "text-indigo-500" },
+  ];
+
+  const aiToolLinks = [
+    { to: "/tools/image-generator", icon: ImageIcon, label: "AI Images", color: "text-pink-500" },
+    { to: "/tools/video-generator", icon: Video, label: "AI Video", color: "text-red-500" },
+    { to: "/tools/chat", icon: MessageSquare, label: "AI Chat", color: "text-cyan-500" },
+    { to: "/tools/chat-pdf", icon: Upload, label: "Chat PDF", color: "text-purple-500" },
     { to: "/tools/voice-generator", icon: Mic, label: "Voiceover", color: "text-pink-500" },
-    { to: "/tools/chat", icon: MessageSquare, label: "Chat", color: "text-cyan-500" },
+    { to: "/tools/story-generator", icon: BookOpen, label: "Story Gen", color: "text-amber-500" },
+    { to: "/tools/writer", icon: Sparkles, label: "AI Writer", color: "text-teal-500" },
   ];
 
   const dashboardLinks = [
     { to: "/files", icon: FolderOpen, label: "All Files" },
     { to: "/gallery", icon: ImageIcon, label: "Gallery" },
-    { to: "/dashboard", icon: Wrench, label: "Tools" },
-    { to: "/tools/chat", icon: Bot, label: "ChatGPT" },
+    { to: "/dashboard", icon: Wrench, label: "All Tools" },
   ];
 
   const getFileIcon = (type: string) => {
@@ -137,7 +150,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       <div className="flex-1 overflow-y-auto py-3">
         {/* Create Section */}
-        <div className="px-3 mb-4">
+        <div className="px-3 mb-3">
           <h3 className="text-[10px] font-semibold text-muted-foreground mb-2 px-2 uppercase tracking-wider">Create</h3>
           <nav className="space-y-0.5">
             {createLinks.map((link) => (
@@ -159,8 +172,31 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </nav>
         </div>
 
+        {/* AI Tools Section */}
+        <div className="px-3 mb-3">
+          <h3 className="text-[10px] font-semibold text-muted-foreground mb-2 px-2 uppercase tracking-wider">AI Tools</h3>
+          <nav className="space-y-0.5">
+            {aiToolLinks.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                onClick={onClose}
+                className={cn(
+                  "flex items-center gap-2.5 px-2 py-1.5 rounded-md transition-all text-[13px]",
+                  location.pathname === link.to
+                    ? "bg-muted font-medium"
+                    : "hover:bg-muted/50 text-foreground/80"
+                )}
+              >
+                <link.icon className={cn("w-4 h-4", link.color)} />
+                <span>{link.label}</span>
+              </Link>
+            ))}
+          </nav>
+        </div>
+
         {/* Dashboard Section */}
-        <div className="px-3 mb-4">
+        <div className="px-3 mb-3">
           <h3 className="text-[10px] font-semibold text-muted-foreground mb-2 px-2 uppercase tracking-wider">Dashboard</h3>
           <nav className="space-y-0.5">
             {dashboardLinks.map((link) => (
