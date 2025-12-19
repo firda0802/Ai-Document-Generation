@@ -27,6 +27,7 @@ import HelpCenter from "./pages/HelpCenter";
 import Feedback from "./pages/Feedback";
 import Status from "./pages/Status";
 import AdminMessages from "./pages/AdminMessages";
+import AdminDashboard from "./pages/AdminDashboard";
 import { LiveChatWidget } from "./components/LiveChatWidget";
 import DocumentCreator from "./pages/tools/DocumentCreator";
 import PresentationMaker from "./pages/tools/PresentationMaker";
@@ -69,6 +70,10 @@ function AnimatedRoutes() {
         <Route path="/help" element={<PageTransition><HelpCenter /></PageTransition>} />
         <Route path="/feedback" element={<PageTransition><Feedback /></PageTransition>} />
         <Route path="/status" element={<PageTransition><Status /></PageTransition>} />
+        
+        {/* Admin routes */}
+        <Route path="/admin" element={<PageTransition><AdminDashboard /></PageTransition>} />
+        <Route path="/admin/dashboard" element={<PageTransition><AdminDashboard /></PageTransition>} />
         <Route path="/admin/messages" element={<PageTransition><AdminMessages /></PageTransition>} />
         
         {/* Main dashboard */}
