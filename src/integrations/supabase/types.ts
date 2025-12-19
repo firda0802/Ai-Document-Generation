@@ -80,6 +80,54 @@ export type Database = {
         }
         Relationships: []
       }
+      generated_media: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_size: number | null
+          file_url: string
+          id: string
+          media_type: string
+          metadata: Json | null
+          prompt: string | null
+          style: string | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_size?: number | null
+          file_url: string
+          id?: string
+          media_type: string
+          metadata?: Json | null
+          prompt?: string | null
+          style?: string | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          media_type?: string
+          metadata?: Json | null
+          prompt?: string | null
+          style?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

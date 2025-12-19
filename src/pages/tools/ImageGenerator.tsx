@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,10 +17,14 @@ import {
   Loader2, 
   Wand2,
   Crown,
-  Palette
+  Palette,
+  Grid3X3,
+  Edit,
+  Save
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { Slider } from "@/components/ui/slider";
 
 const styles = [
   { value: "realistic", label: "Realistic", icon: "📷" },
@@ -37,14 +42,27 @@ const examplePrompts = [
   "An astronaut riding a horse on Mars",
 ];
 
+interface GeneratedImage {
+  imageUrl: string;
+  description: string;
+}
+
 export default function ImageGenerator() {
+  const [activeTab, setActiveTab] = useState("generate");
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState("realistic");
+  const [count, setCount] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const [imageDescription, setImageDescription] = useState<string | null>(null);
+  const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [isPremium, setIsPremium] = useState(false);
   const [checkingPremium, setCheckingPremium] = useState(true);
+  
+  // Edit tab state
+  const [editImageUrl, setEditImageUrl] = useState("");
+  const [editPrompt, setEditPrompt] = useState("");
+  const [editedImage, setEditedImage] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -96,12 +114,12 @@ export default function ImageGenerator() {
     }
 
     setIsGenerating(true);
-    setGeneratedImage(null);
+    setGeneratedImages([]);
 
     try {
       const headers = await getAuthHeaders();
       const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: { prompt, style },
+        body: { prompt, style, count, saveToGallery: true },
         headers
       });
 
@@ -117,12 +135,11 @@ export default function ImageGenerator() {
         throw error;
       }
 
-      if (data?.imageUrl) {
-        setGeneratedImage(data.imageUrl);
-        setImageDescription(data.description);
+      if (data?.images && data.images.length > 0) {
+        setGeneratedImages(data.images);
         toast({
-          title: "Image Generated!",
-          description: "Your AI image has been created successfully.",
+          title: "Images Generated!",
+          description: `${data.images.length} image(s) created and saved to gallery.`,
         });
       }
     } catch (error: any) {
@@ -137,21 +154,64 @@ export default function ImageGenerator() {
     }
   };
 
-  const handleDownload = async () => {
-    if (!generatedImage) return;
+  const handleEdit = async () => {
+    if (!editImageUrl.trim() || !editPrompt.trim()) {
+      toast({
+        title: "Input required",
+        description: "Please provide an image URL and edit instructions.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to edit images.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsEditing(true);
+    setEditedImage(null);
 
     try {
+      const headers = await getAuthHeaders();
+      const { data, error } = await supabase.functions.invoke('edit-image', {
+        body: { imageUrl: editImageUrl, editPrompt, saveToGallery: true },
+        headers
+      });
+
+      if (error) throw error;
+
+      if (data?.imageUrl) {
+        setEditedImage(data.imageUrl);
+        toast({
+          title: "Image Edited!",
+          description: "Your edited image has been saved to gallery.",
+        });
+      }
+    } catch (error: any) {
+      console.error('Image edit error:', error);
+      toast({
+        title: "Edit Failed",
+        description: error.message || "Failed to edit image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  const handleDownload = async (imageUrl: string, index: number) => {
+    try {
       const link = document.createElement('a');
-      link.href = generatedImage;
-      link.download = `ai-image-${Date.now()}.png`;
+      link.href = imageUrl;
+      link.download = `ai-image-${index + 1}-${Date.now()}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      toast({
-        title: "Download Started",
-        description: "Your image is being downloaded.",
-      });
     } catch (error) {
       toast({
         title: "Download Failed",
@@ -160,6 +220,25 @@ export default function ImageGenerator() {
       });
     }
   };
+
+  const useGeneratedImageForEdit = (imageUrl: string) => {
+    setEditImageUrl(imageUrl);
+    setActiveTab("edit");
+    toast({
+      title: "Image Selected",
+      description: "You can now edit this image with AI.",
+    });
+  };
+
+  if (checkingPremium) {
+    return (
+      <DashboardLayout>
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -185,11 +264,7 @@ export default function ImageGenerator() {
           </p>
         </motion.div>
 
-        {checkingPremium ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : !isPremium ? (
+        {!isPremium ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -214,139 +289,313 @@ export default function ImageGenerator() {
             </Card>
           </motion.div>
         ) : (
-          <div className="grid lg:grid-cols-2 gap-6">
-            {/* Input Section */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-            >
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Wand2 className="w-5 h-5" />
-                    Create Your Image
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Describe your image
-                    </label>
-                    <Textarea
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                      placeholder="A magical forest with glowing mushrooms and fairy lights..."
-                      className="min-h-[120px] resize-none"
-                    />
-                  </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-6">
+              <TabsTrigger value="generate" className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                Generate
+              </TabsTrigger>
+              <TabsTrigger value="edit" className="flex items-center gap-2">
+                <Edit className="w-4 h-4" />
+                Edit
+              </TabsTrigger>
+            </TabsList>
 
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Style
-                    </label>
-                    <Select value={style} onValueChange={setStyle}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {styles.map((s) => (
-                          <SelectItem key={s.value} value={s.value}>
-                            <span className="flex items-center gap-2">
-                              <span>{s.icon}</span>
-                              <span>{s.label}</span>
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <Button 
-                    onClick={handleGenerate} 
-                    disabled={isGenerating || !prompt.trim()}
-                    className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
-                  >
-                    {isGenerating ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Generate Image
-                      </>
-                    )}
-                  </Button>
-
-                  <div className="pt-4 border-t">
-                    <p className="text-sm font-medium mb-2 flex items-center gap-2">
-                      <Palette className="w-4 h-4" />
-                      Try these prompts:
-                    </p>
-                    <div className="space-y-2">
-                      {examplePrompts.map((example, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setPrompt(example)}
-                          className="w-full text-left text-sm p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                        >
-                          {example}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Output Section */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-            >
-              <Card className="h-full">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ImageIcon className="w-5 h-5" />
-                    Generated Image
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {isGenerating ? (
-                    <div className="aspect-square bg-muted rounded-lg flex flex-col items-center justify-center">
-                      <Loader2 className="w-12 h-12 animate-spin text-muted-foreground mb-4" />
-                      <p className="text-muted-foreground">Creating your masterpiece...</p>
-                      <p className="text-sm text-muted-foreground mt-1">This may take a moment</p>
-                    </div>
-                  ) : generatedImage ? (
-                    <div className="space-y-4">
-                      <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-                        <img
-                          src={generatedImage}
-                          alt={imageDescription || "AI Generated Image"}
-                          className="w-full h-full object-cover"
+            <TabsContent value="generate">
+              <div className="grid lg:grid-cols-2 gap-6">
+                {/* Input Section */}
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                >
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Wand2 className="w-5 h-5" />
+                        Create Your Images
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">
+                          Describe your image
+                        </label>
+                        <Textarea
+                          value={prompt}
+                          onChange={(e) => setPrompt(e.target.value)}
+                          placeholder="A magical forest with glowing mushrooms and fairy lights..."
+                          className="min-h-[120px] resize-none"
                         />
                       </div>
-                      {imageDescription && (
-                        <p className="text-sm text-muted-foreground">{imageDescription}</p>
-                      )}
-                      <Button onClick={handleDownload} className="w-full" variant="outline">
-                        <Download className="w-4 h-4 mr-2" />
-                        Download Image
+
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Style</label>
+                        <Select value={style} onValueChange={setStyle}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {styles.map((s) => (
+                              <SelectItem key={s.value} value={s.value}>
+                                <span className="flex items-center gap-2">
+                                  <span>{s.icon}</span>
+                                  <span>{s.label}</span>
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium mb-2 block flex items-center gap-2">
+                          <Grid3X3 className="w-4 h-4" />
+                          Number of variations: {count}
+                        </label>
+                        <Slider
+                          value={[count]}
+                          onValueChange={(v) => setCount(v[0])}
+                          min={1}
+                          max={4}
+                          step={1}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Generate up to 4 variations at once
+                        </p>
+                      </div>
+
+                      <Button 
+                        onClick={handleGenerate} 
+                        disabled={isGenerating || !prompt.trim()}
+                        className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
+                      >
+                        {isGenerating ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Generating {count} image{count > 1 ? 's' : ''}...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Generate {count} Image{count > 1 ? 's' : ''}
+                          </>
+                        )}
                       </Button>
-                    </div>
-                  ) : (
-                    <div className="aspect-square bg-muted/50 rounded-lg flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/20">
-                      <ImageIcon className="w-16 h-16 text-muted-foreground/30 mb-4" />
-                      <p className="text-muted-foreground">Your generated image will appear here</p>
-                      <p className="text-sm text-muted-foreground mt-1">Enter a prompt and click Generate</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-          </div>
+
+                      <div className="pt-4 border-t">
+                        <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                          <Palette className="w-4 h-4" />
+                          Try these prompts:
+                        </p>
+                        <div className="space-y-2">
+                          {examplePrompts.map((example, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => setPrompt(example)}
+                              className="w-full text-left text-sm p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                            >
+                              {example}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Output Section */}
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                >
+                  <Card className="h-full">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <ImageIcon className="w-5 h-5" />
+                        Generated Images
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {isGenerating ? (
+                        <div className="aspect-square bg-muted rounded-lg flex flex-col items-center justify-center">
+                          <Loader2 className="w-12 h-12 animate-spin text-muted-foreground mb-4" />
+                          <p className="text-muted-foreground">Creating your masterpiece{count > 1 ? 's' : ''}...</p>
+                        </div>
+                      ) : generatedImages.length > 0 ? (
+                        <div className={`grid gap-4 ${generatedImages.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                          {generatedImages.map((img, idx) => (
+                            <div key={idx} className="space-y-2">
+                              <div className="relative aspect-square rounded-lg overflow-hidden bg-muted group">
+                                <img
+                                  src={img.imageUrl}
+                                  alt={`Generated ${idx + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={() => handleDownload(img.imageUrl, idx)}
+                                  >
+                                    <Download className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={() => useGeneratedImageForEdit(img.imageUrl)}
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="aspect-square bg-muted/50 rounded-lg flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/20">
+                          <ImageIcon className="w-16 h-16 text-muted-foreground/30 mb-4" />
+                          <p className="text-muted-foreground">Your generated images will appear here</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="edit">
+              <div className="grid lg:grid-cols-2 gap-6">
+                {/* Edit Input */}
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                >
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Edit className="w-5 h-5" />
+                        Edit Image with AI
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Image URL</label>
+                        <Textarea
+                          value={editImageUrl}
+                          onChange={(e) => setEditImageUrl(e.target.value)}
+                          placeholder="Paste the image URL here (or generate an image first)"
+                          className="min-h-[80px] resize-none"
+                        />
+                      </div>
+
+                      {editImageUrl && (
+                        <div className="aspect-video rounded-lg overflow-hidden bg-muted">
+                          <img
+                            src={editImageUrl}
+                            alt="Original"
+                            className="w-full h-full object-contain"
+                            onError={() => toast({
+                              title: "Invalid URL",
+                              description: "Could not load image from URL",
+                              variant: "destructive"
+                            })}
+                          />
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Edit Instructions</label>
+                        <Textarea
+                          value={editPrompt}
+                          onChange={(e) => setEditPrompt(e.target.value)}
+                          placeholder="Make it rainy, change the sky to sunset, add snow..."
+                          className="min-h-[100px] resize-none"
+                        />
+                      </div>
+
+                      <Button 
+                        onClick={handleEdit} 
+                        disabled={isEditing || !editImageUrl.trim() || !editPrompt.trim()}
+                        className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+                      >
+                        {isEditing ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Editing...
+                          </>
+                        ) : (
+                          <>
+                            <Edit className="w-4 h-4 mr-2" />
+                            Apply Edit
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Edit Output */}
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                >
+                  <Card className="h-full">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Save className="w-5 h-5" />
+                        Edited Image
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {isEditing ? (
+                        <div className="aspect-square bg-muted rounded-lg flex flex-col items-center justify-center">
+                          <Loader2 className="w-12 h-12 animate-spin text-muted-foreground mb-4" />
+                          <p className="text-muted-foreground">Applying your edits...</p>
+                        </div>
+                      ) : editedImage ? (
+                        <div className="space-y-4">
+                          <div className="aspect-square rounded-lg overflow-hidden bg-muted">
+                            <img
+                              src={editedImage}
+                              alt="Edited"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              onClick={() => handleDownload(editedImage, 0)} 
+                              className="flex-1" 
+                              variant="outline"
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              Download
+                            </Button>
+                            <Button 
+                              onClick={() => {
+                                setEditImageUrl(editedImage);
+                                setEditedImage(null);
+                              }} 
+                              className="flex-1" 
+                              variant="outline"
+                            >
+                              <Edit className="w-4 h-4 mr-2" />
+                              Edit Again
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="aspect-square bg-muted/50 rounded-lg flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/20">
+                          <Edit className="w-16 h-16 text-muted-foreground/30 mb-4" />
+                          <p className="text-muted-foreground">Your edited image will appear here</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </div>
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     </DashboardLayout>
