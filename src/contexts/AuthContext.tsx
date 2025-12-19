@@ -10,6 +10,7 @@ import {
   signInWithPhoneNumber,
   ConfirmationResult,
   getAdditionalUserInfo,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth, googleProvider, githubProvider } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +26,7 @@ interface AuthContextType {
   signInWithGithub: () => Promise<{ isNewUser: boolean }>;
   signInWithPhone: (phoneNumber: string, appVerifier: RecaptchaVerifier) => Promise<ConfirmationResult>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -198,9 +200,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      const actionCodeSettings = {
+        url: `${window.location.origin}/auth`,
+        handleCodeInApp: true,
+      };
+      
+      await sendPasswordResetEmail(auth, email, actionCodeSettings);
+      
+      // Send our custom professional email
+      const resetLink = `${window.location.origin}/auth?mode=resetPassword&email=${encodeURIComponent(email)}`;
+      await supabase.functions.invoke("send-password-reset-email", {
+        body: {
+          email,
+          name: email.split("@")[0],
+          resetLink,
+        },
+      });
+      
+      toast({
+        title: "Password reset email sent",
+        description: "Check your inbox for instructions to reset your password.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Password reset failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, signIn, signUp, signInWithGoogle, signInWithGithub, signInWithPhone, signOut }}
+      value={{ user, loading, signIn, signUp, signInWithGoogle, signInWithGithub, signInWithPhone, signOut, resetPassword }}
     >
       {children}
     </AuthContext.Provider>
