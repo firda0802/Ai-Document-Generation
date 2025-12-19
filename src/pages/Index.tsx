@@ -1181,6 +1181,8 @@ export default function Index() {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link></li>
                 <li><Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link></li>
+                <li><Link to="/cookies" className="hover:text-foreground transition-colors">Cookies Policy</Link></li>
+                <li><Link to="/refund-policy" className="hover:text-foreground transition-colors">Refund Policy</Link></li>
               </ul>
             </div>
           </div>
