@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { 
   Loader2, FileText, Crown, Sparkles, Download, 
   Palette, LayoutTemplate, MessageSquare,
-  Send, Edit
+  Send, Edit, Zap
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { buildDocxFromSchema } from "@/lib/documentBuilder";
@@ -15,7 +15,7 @@ import { DocumentJsonPreview } from "@/components/DocumentJsonPreview";
 import { TemplateSelector } from "@/components/TemplateSelector";
 import { checkRateLimit } from "@/lib/rateLimiter";
 import { getAuthHeaders } from "@/hooks/useFirebaseAuth";
-import { fileHistoryDb, userRolesDb, usageTrackingDb } from "@/lib/databaseProxy";
+import { fileHistoryDb, usageTrackingDb } from "@/lib/databaseProxy";
 import { SEO } from "@/components/SEO";
 import { DOCUMENT_THEMES, DOCUMENT_TEMPLATES, type DocumentSchema, type AnyDocumentElement } from "@/lib/documentSchema";
 import { processDocumentImages, hasUnprocessedImages } from "@/lib/imageProcessor";
@@ -30,6 +30,9 @@ import { DocumentAssistantChat } from "@/components/tools/DocumentAssistantChat"
 import type { ChatSettings } from "@/components/tools/ChatSettingsPanel";
 import { SEOArticle } from "@/components/seo/SEOArticle";
 import { aiDocumentGeneratorArticle } from "@/data/toolSEOArticles";
+import { useTierCredits } from "@/hooks/useTierCredits";
+import { Progress } from "@/components/ui/progress";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -143,25 +146,22 @@ export default function DocumentCreator() {
   const [documentSchema, setDocumentSchema] = useState<DocumentSchema | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>('blank');
   const [selectedTheme, setSelectedTheme] = useState<string>('modern');
-  const [isPremium, setIsPremium] = useState(false);
-  const [remainingCredits, setRemainingCredits] = useState(5);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const { toast } = useToast();
 
-  useEffect(() => {
-    const checkPremiumStatus = async () => {
-      if (!user?.uid) return;
-      const isPremiumUser = await userRolesDb.isPremium();
-      if (isPremiumUser) {
-        setIsPremium(true);
-        setRemainingCredits(999);
-      }
-    };
-    checkPremiumStatus();
-  }, [user?.uid]);
+  const {
+    creditLimit,
+    creditsUsed,
+    isPremium,
+    loading: creditsLoading,
+    getUpgradeMessage,
+    refetch
+  } = useTierCredits('documents_generated');
+  
+  const canGenerate = creditsUsed < creditLimit;
 
-  if (authLoading) {
+  if (authLoading || creditsLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-[60vh]">
@@ -190,6 +190,15 @@ export default function DocumentCreator() {
       toast({
         title: "Rate Limit Exceeded",
         description: rateLimitResult.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!canGenerate) {
+      toast({
+        title: "Credit Limit Reached",
+        description: "You've used all your document credits for today.",
         variant: "destructive",
       });
       return;
@@ -252,8 +261,6 @@ export default function DocumentCreator() {
           setProcessingImages(false);
         }
       }
-      
-      setRemainingCredits(prev => Math.max(0, prev - 1));
 
       await fileHistoryDb.insert({
         title: schema.metadata?.title || topic.substring(0, 50),
@@ -262,6 +269,8 @@ export default function DocumentCreator() {
       });
 
       await usageTrackingDb.incrementUsage('documents_generated');
+      
+      refetch(); // Refresh credits
 
       toast({
         title: "Document ready!",
@@ -567,6 +576,39 @@ Response preferences:
           </Select>
         </div>
 
+        {/* Credits Display */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          <Card className="max-w-md mx-auto">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-blue-500" />
+                  Daily Document Credits
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {creditsUsed} / {creditLimit} used
+                </span>
+              </div>
+              <Progress value={(creditsUsed / creditLimit) * 100} className="h-2" />
+              <div className="flex justify-between items-center mt-2">
+                <p className="text-xs text-muted-foreground">
+                  {creditLimit - creditsUsed} credits remaining today
+                </p>
+                {!isPremium && (
+                  <Link to="/dashboard/subscription" className="text-xs text-primary hover:underline flex items-center gap-1">
+                    <Crown className="w-3 h-3" />
+                    {getUpgradeMessage()}
+                  </Link>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
         {/* Prompt Input */}
         <PromptInput
           value={topic}
@@ -574,7 +616,7 @@ Response preferences:
           onSubmit={handleGenerate}
           placeholder="Create a 2 page summary on the Canon imageCLASS LBP236dw printer"
           loading={loading}
-          disabled={loading}
+          disabled={loading || !canGenerate}
           exampleText="Example"
           onExampleClick={() => setTopic("Create a comprehensive business proposal for a new mobile app development project, including executive summary, project scope, timeline, and budget estimates.")}
           showExample={!topic}
