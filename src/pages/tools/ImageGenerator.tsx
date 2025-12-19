@@ -89,17 +89,20 @@ export default function ImageGenerator() {
       }
       
       try {
-        // Check premium status
-        const { data: subData } = await supabase
-          .from('subscriptions')
-          .select('status')
+        // Check user role for tier-based limits
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
           .eq('user_id', user.uid)
-          .eq('status', 'active')
           .maybeSingle();
         
-        const premium = !!subData;
+        const role = roleData?.role || 'free';
+        const premium = role === 'premium';
+        const standard = role === 'standard';
         setIsPremium(premium);
-        setCreditLimit(premium ? 100 : 10);
+        
+        // Set limits based on tier: Free=10, Standard=50, Premium=100
+        setCreditLimit(premium ? 100 : standard ? 50 : 10);
 
         // Check today's usage
         const today = new Date().toISOString().split('T')[0];
@@ -393,7 +396,7 @@ export default function ImageGenerator() {
                   {!isPremium && (
                     <Link to="/dashboard/subscription" className="text-xs text-primary hover:underline flex items-center gap-1">
                       <Crown className="w-3 h-3" />
-                      Upgrade for 100/day
+                      {creditLimit === 10 ? 'Upgrade for 50/day' : 'Upgrade to Premium for 100/day'}
                     </Link>
                   )}
                 </div>
