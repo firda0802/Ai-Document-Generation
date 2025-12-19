@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { SEO } from "@/components/SEO";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getAuthHeaders } from "@/hooks/useFirebaseAuth";
+import { useTierCredits } from "@/hooks/useTierCredits";
 import { 
   Video, 
   Sparkles, 
@@ -18,10 +19,12 @@ import {
   Upload,
   ImageIcon,
   Clock,
-  Zap
+  Zap,
+  Crown
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Progress } from "@/components/ui/progress";
+import { Link } from "react-router-dom";
 
 export default function VideoGenerator() {
   const [prompt, setPrompt] = useState("");
@@ -31,55 +34,17 @@ export default function VideoGenerator() {
   const [duration, setDuration] = useState(5);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
-  const [creditsUsed, setCreditsUsed] = useState(0);
-  const [creditLimit, setCreditLimit] = useState(2);
-  const [isPremium, setIsPremium] = useState(false);
-  const [checkingStatus, setCheckingStatus] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
-
-  useEffect(() => {
-    const checkStatus = async () => {
-      if (!user) {
-        setCheckingStatus(false);
-        return;
-      }
-      
-      try {
-        // Check user role for tier
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.uid)
-          .maybeSingle();
-        
-        const role = roleData?.role || 'free';
-        const premium = role === 'premium';
-        const standard = role === 'standard';
-        setIsPremium(premium);
-        
-        // Set limits based on tier: Free=2, Standard=10, Premium=30
-        setCreditLimit(premium ? 30 : standard ? 10 : 2);
-
-        // Check today's usage
-        const today = new Date().toISOString().split('T')[0];
-        const { data: usageData } = await supabase
-          .from('usage_tracking')
-          .select('videos_generated')
-          .eq('user_id', user.uid)
-          .eq('date', today)
-          .single();
-
-        setCreditsUsed(usageData?.videos_generated || 0);
-      } catch (error) {
-        console.error('Error checking status:', error);
-      } finally {
-        setCheckingStatus(false);
-      }
-    };
-
-    checkStatus();
-  }, [user]);
+  
+  const { 
+    creditLimit, 
+    creditsUsed, 
+    isPremium, 
+    loading: checkingStatus,
+    getUpgradeMessage,
+    refetch 
+  } = useTierCredits('videos_generated');
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -137,7 +102,7 @@ export default function VideoGenerator() {
 
       if (data?.videoUrl) {
         setGeneratedVideo(data.videoUrl);
-        setCreditsUsed(data.creditsUsed || 0);
+        refetch(); // Refresh credits
         toast({
           title: "Video Generated!",
           description: data.note || "Your AI video has been created.",
@@ -225,10 +190,10 @@ export default function VideoGenerator() {
                     {creditLimit - creditsUsed} credits remaining today
                   </p>
                   {!isPremium && (
-                    <a href="/dashboard/subscription" className="text-xs text-primary hover:underline flex items-center gap-1">
-                      <span className="w-3 h-3">👑</span>
-                      Upgrade for more
-                    </a>
+                    <Link to="/dashboard/subscription" className="text-xs text-primary hover:underline flex items-center gap-1">
+                      <Crown className="w-3 h-3" />
+                      {getUpgradeMessage()}
+                    </Link>
                   )}
                 </div>
               </CardContent>

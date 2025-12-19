@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Presentation, ChevronLeft, ChevronRight, Edit, FileText, Download, Palette } from "lucide-react";
+import { Loader2, Presentation, ChevronLeft, ChevronRight, Edit, FileText, Download, Palette, Zap, Crown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { createPptxFile } from "@/lib/fileGenerators";
@@ -17,7 +17,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { ThemeSelector, Theme } from "@/components/ThemeSelector";
 import { getAuthHeaders } from "@/hooks/useFirebaseAuth";
 import { SEO } from "@/components/SEO";
-import { fileHistoryDb, userRolesDb } from "@/lib/databaseProxy";
+import { fileHistoryDb } from "@/lib/databaseProxy";
 import { ToolHero, PromptInput, InsightCard, ToolSuggestionCards } from "@/components/tools";
 import { DocumentAssistantChat } from "@/components/tools/DocumentAssistantChat";
 import type { ChatSettings } from "@/components/tools/ChatSettingsPanel";
@@ -27,7 +27,9 @@ import { createPdfFromPresentation } from "@/lib/pdfBuilder";
 import { SEOArticle } from "@/components/seo/SEOArticle";
 import { aiPresentationGeneratorArticle } from "@/data/toolSEOArticles";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { useEffect } from "react";
+import { useTierCredits } from "@/hooks/useTierCredits";
+import { Progress } from "@/components/ui/progress";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function PresentationMaker() {
   const { user, loading: authLoading } = useAuth();
@@ -38,17 +40,18 @@ export default function PresentationMaker() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null);
-  const [isPremium, setIsPremium] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const checkPremiumStatus = async () => {
-      if (!user?.uid) return;
-      const isPremiumUser = await userRolesDb.isPremium();
-      setIsPremium(isPremiumUser);
-    };
-    checkPremiumStatus();
-  }, [user?.uid]);
+  const {
+    creditLimit,
+    creditsUsed,
+    isPremium,
+    loading: creditsLoading,
+    getUpgradeMessage,
+    refetch
+  } = useTierCredits('presentations_generated');
+  
+  const canGenerate = creditsUsed < creditLimit;
 
   const asText = (value: any): string => {
     if (typeof value === "string") return value;
@@ -60,7 +63,7 @@ export default function PresentationMaker() {
     return String(value);
   };
 
-  if (authLoading) {
+  if (authLoading || creditsLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-[60vh]">
@@ -79,6 +82,15 @@ export default function PresentationMaker() {
       toast({
         title: "Topic required",
         description: "Please enter what you want the presentation to be about",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!canGenerate) {
+      toast({
+        title: "Credit Limit Reached",
+        description: "You've used all your presentation credits for today.",
         variant: "destructive",
       });
       return;
@@ -109,6 +121,8 @@ export default function PresentationMaker() {
         content: JSON.stringify(data),
         file_type: 'presentation',
       });
+      
+      refetch(); // Refresh credits
 
       toast({
         title: "Presentation generated!",
@@ -455,6 +469,28 @@ Response preferences:
           </Select>
           <ThemeSelector onThemeChange={setSelectedTheme} />
         </div>
+
+        {/* Credits Display */}
+        <Card className="max-w-md mx-auto mb-6">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium flex items-center gap-2">
+                <Zap className="w-4 h-4 text-orange-500" />
+                Daily Presentation Credits
+              </span>
+              <span className="text-sm text-muted-foreground">{creditsUsed} / {creditLimit} used</span>
+            </div>
+            <Progress value={(creditsUsed / creditLimit) * 100} className="h-2" />
+            <div className="flex justify-between items-center mt-2">
+              <p className="text-xs text-muted-foreground">{creditLimit - creditsUsed} credits remaining</p>
+              {!isPremium && (
+                <Link to="/dashboard/subscription" className="text-xs text-primary hover:underline flex items-center gap-1">
+                  <Crown className="w-3 h-3" />{getUpgradeMessage()}
+                </Link>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Prompt Input */}
         <PromptInput

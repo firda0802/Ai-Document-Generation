@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Sparkles, Brain, Loader2, MessageSquare, Bot, Paperclip, X, FileText, Image as ImageIcon } from "lucide-react";
+import { Send, Sparkles, Brain, Loader2, MessageSquare, Bot, Paperclip, X, FileText, Image as ImageIcon, Zap, Crown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +13,9 @@ import { SEO } from "@/components/SEO";
 import { ToolHero, ToolSuggestionCards } from "@/components/tools";
 import { SEOArticle } from "@/components/seo/SEOArticle";
 import { aiChatArticle } from "@/data/toolSEOArticles";
+import { useTierCredits } from "@/hooks/useTierCredits";
+import { Progress } from "@/components/ui/progress";
+import { Link } from "react-router-dom";
 
 type Message = { role: "user" | "assistant"; content: string; attachments?: { name: string; type: string }[] };
 
@@ -24,6 +27,17 @@ export default function Chat() {
   const [isLoading, setIsLoading] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const {
+    creditLimit,
+    creditsUsed,
+    isPremium,
+    loading: creditsLoading,
+    getUpgradeMessage,
+    refetch
+  } = useTierCredits('chat_messages');
+  
+  const canSendMessage = creditsUsed < creditLimit;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -80,6 +94,7 @@ export default function Chat() {
       const assistantContent = data?.choices?.[0]?.message?.content;
       if (assistantContent) {
         setMessages((prev) => [...prev, { role: "assistant", content: assistantContent }]);
+        refetch(); // Refresh credits
       }
     } catch (error: any) {
       console.error('Chat error:', error);
@@ -98,6 +113,15 @@ export default function Chat() {
       toast({
         title: "Sign in required",
         description: "Please sign in to use the AI chat.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!canSendMessage) {
+      toast({
+        title: "Credit Limit Reached",
+        description: "You've used all your chat credits for today.",
         variant: "destructive",
       });
       return;
@@ -155,6 +179,37 @@ export default function Chat() {
           subtitle="Ask anything, get instant answers"
           className="py-4"
         />
+
+        {/* Credits Display */}
+        {user && (
+          <div className="mb-4 px-4 py-3 rounded-xl border border-border/50 bg-card/50">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium flex items-center gap-2">
+                <Zap className="w-4 h-4 text-cyan-500" />
+                Daily Chat Credits
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {creditsUsed} / {creditLimit === 999 ? '∞' : creditLimit} used
+              </span>
+            </div>
+            {creditLimit !== 999 && (
+              <>
+                <Progress value={(creditsUsed / creditLimit) * 100} className="h-2" />
+                <div className="flex justify-between items-center mt-2">
+                  <p className="text-xs text-muted-foreground">
+                    {creditLimit - creditsUsed} messages remaining today
+                  </p>
+                  {!isPremium && (
+                    <Link to="/dashboard/subscription" className="text-xs text-primary hover:underline flex items-center gap-1">
+                      <Crown className="w-3 h-3" />
+                      {getUpgradeMessage()}
+                    </Link>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         <div className="flex-1 flex flex-col min-h-0 rounded-2xl border border-border/50 bg-card overflow-hidden">
           {messages.length === 0 ? (
@@ -286,9 +341,10 @@ export default function Chat() {
               />
               <Button
                 onClick={handleSend}
-                disabled={(!input.trim() && attachments.length === 0) || isLoading}
+                disabled={(!input.trim() && attachments.length === 0) || isLoading || !canSendMessage}
                 size="icon"
                 className="h-11 w-11 shrink-0 bg-gradient-to-r from-cyan-600 to-blue-500 hover:from-cyan-700 hover:to-blue-600"
+                title={!canSendMessage ? "No credits remaining" : "Send message"}
               >
                 <Send className="w-4 h-4" />
               </Button>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, FileSpreadsheet, Edit, FileText, Download, Palette } from "lucide-react";
+import { Loader2, FileSpreadsheet, Edit, FileText, Download, Palette, Zap, Crown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { createXlsxFile } from "@/lib/fileGenerators";
@@ -17,7 +17,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAuthHeaders } from "@/hooks/useFirebaseAuth";
 import { SEO } from "@/components/SEO";
-import { fileHistoryDb, userRolesDb } from "@/lib/databaseProxy";
+import { fileHistoryDb } from "@/lib/databaseProxy";
 import { ToolHero, PromptInput, InsightCard, ToolSuggestionCards } from "@/components/tools";
 import { DocumentAssistantChat } from "@/components/tools/DocumentAssistantChat";
 import type { ChatSettings } from "@/components/tools/ChatSettingsPanel";
@@ -25,7 +25,9 @@ import { motion } from "framer-motion";
 import { SEOArticle } from "@/components/seo/SEOArticle";
 import { aiSpreadsheetGeneratorArticle } from "@/data/toolSEOArticles";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { useEffect } from "react";
+import { useTierCredits } from "@/hooks/useTierCredits";
+import { Progress } from "@/components/ui/progress";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function Spreadsheet() {
   const { user, loading: authLoading } = useAuth();
@@ -34,19 +36,20 @@ export default function Spreadsheet() {
   const [generatedContent, setGeneratedContent] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState<string[][]>([]);
-  const [isPremium, setIsPremium] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const checkPremiumStatus = async () => {
-      if (!user?.uid) return;
-      const isPremiumUser = await userRolesDb.isPremium();
-      setIsPremium(isPremiumUser);
-    };
-    checkPremiumStatus();
-  }, [user?.uid]);
+  const {
+    creditLimit,
+    creditsUsed,
+    isPremium,
+    loading: creditsLoading,
+    getUpgradeMessage,
+    refetch
+  } = useTierCredits('spreadsheets_generated');
+  
+  const canGenerate = creditsUsed < creditLimit;
 
-  if (authLoading) {
+  if (authLoading || creditsLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-[60vh]">
@@ -65,6 +68,15 @@ export default function Spreadsheet() {
       toast({
         title: "Description required",
         description: "Please describe what kind of spreadsheet you need",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!canGenerate) {
+      toast({
+        title: "Credit Limit Reached",
+        description: "You've used all your spreadsheet credits for today.",
         variant: "destructive",
       });
       return;
@@ -91,6 +103,8 @@ export default function Spreadsheet() {
         content: data.content,
         file_type: 'spreadsheet',
       });
+
+      refetch(); // Refresh credits
 
       toast({
         title: "Spreadsheet generated!",
@@ -366,6 +380,28 @@ Response preferences:
           title="AI Excel Generator"
           subtitle="Create an Excel spreadsheet in seconds using AI."
         />
+
+        {/* Credits Display */}
+        <Card className="max-w-md mx-auto mb-6">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium flex items-center gap-2">
+                <Zap className="w-4 h-4 text-green-500" />
+                Daily Spreadsheet Credits
+              </span>
+              <span className="text-sm text-muted-foreground">{creditsUsed} / {creditLimit} used</span>
+            </div>
+            <Progress value={(creditsUsed / creditLimit) * 100} className="h-2" />
+            <div className="flex justify-between items-center mt-2">
+              <p className="text-xs text-muted-foreground">{creditLimit - creditsUsed} credits remaining</p>
+              {!isPremium && (
+                <Link to="/dashboard/subscription" className="text-xs text-primary hover:underline flex items-center gap-1">
+                  <Crown className="w-3 h-3" />{getUpgradeMessage()}
+                </Link>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Prompt Input */}
         <PromptInput

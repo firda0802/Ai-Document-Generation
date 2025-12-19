@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mic, Download, Play, Pause, Loader2, Volume2, Wand2 } from "lucide-react";
+import { Mic, Download, Play, Pause, Loader2, Volume2, Wand2, Zap, Crown } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
@@ -9,11 +9,14 @@ import { SEO } from "@/components/SEO";
 import { supabase } from "@/integrations/supabase/client";
 import { fileHistoryDb } from "@/lib/databaseProxy";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 import { getAuthHeaders } from "@/hooks/useFirebaseAuth";
 import { ToolHero, PromptInput, InsightCard, ToolSuggestionCards } from "@/components/tools";
 import { SEOArticle } from "@/components/seo/SEOArticle";
 import { aiVoiceGeneratorArticle } from "@/data/toolSEOArticles";
+import { useTierCredits } from "@/hooks/useTierCredits";
+import { Progress } from "@/components/ui/progress";
+import { Card, CardContent } from "@/components/ui/card";
 
 const MAX_TEXT_LENGTH = 5000;
 
@@ -46,8 +49,17 @@ export default function Voiceover() {
   const [audioUrl, setAudioUrl] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  
+  const {
+    creditLimit,
+    creditsUsed,
+    isPremium,
+    loading: creditsLoading,
+    getUpgradeMessage,
+    refetch
+  } = useTierCredits('voiceovers_generated');
 
-  if (authLoading) {
+  if (authLoading || creditsLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-[60vh]">
@@ -63,11 +75,22 @@ export default function Voiceover() {
     return <Navigate to="/login" />;
   }
 
+  const canGenerate = creditsUsed < creditLimit;
+
   const handleGenerate = async () => {
     if (!text.trim()) {
       toast({
         title: "Error",
         description: "Please enter text to convert to speech.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!canGenerate) {
+      toast({
+        title: "Credit Limit Reached",
+        description: "You've used all your voiceover credits for today.",
         variant: "destructive",
       });
       return;
@@ -102,6 +125,8 @@ export default function Voiceover() {
         content: text,
         file_type: 'voiceover',
       });
+
+      refetch(); // Refresh credits
 
       toast({
         title: "Success!",
@@ -164,6 +189,39 @@ export default function Voiceover() {
           title="AI Voice Generator"
           subtitle="Convert text to natural-sounding speech in seconds"
         />
+
+        {/* Credits Display */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          <Card className="max-w-md mx-auto">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-violet-500" />
+                  Daily Voiceover Credits
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {creditsUsed} / {creditLimit} used
+                </span>
+              </div>
+              <Progress value={(creditsUsed / creditLimit) * 100} className="h-2" />
+              <div className="flex justify-between items-center mt-2">
+                <p className="text-xs text-muted-foreground">
+                  {creditLimit - creditsUsed} credits remaining today
+                </p>
+                {!isPremium && (
+                  <Link to="/dashboard/subscription" className="text-xs text-primary hover:underline flex items-center gap-1">
+                    <Crown className="w-3 h-3" />
+                    {getUpgradeMessage()}
+                  </Link>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -231,17 +289,22 @@ export default function Voiceover() {
               onClick={handleGenerate} 
               className="w-full h-12 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white" 
               size="lg"
-              disabled={loading || !text.trim()}
+              disabled={loading || !text.trim() || !canGenerate}
             >
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Generating Voice...
                 </>
+              ) : !canGenerate ? (
+                <>
+                  <Zap className="w-4 h-4 mr-2" />
+                  No Credits Remaining
+                </>
               ) : (
                 <>
                   <Wand2 className="w-4 h-4 mr-2" />
-                  Generate Voiceover
+                  Generate Voiceover (1 credit)
                 </>
               )}
             </Button>

@@ -3,7 +3,7 @@ import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Copy, RefreshCw, Loader2, PenTool, Wand2 } from "lucide-react";
+import { Copy, RefreshCw, Loader2, PenTool, Wand2, Zap, Crown } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { saveGeneratedFile } from "@/lib/api";
@@ -13,17 +13,46 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { ToolHero, PromptInput, InsightCard, ToolSuggestionCards } from "@/components/tools";
 import { SEOArticle } from "@/components/seo/SEOArticle";
 import { aiWriterArticle } from "@/data/toolSEOArticles";
+import { useTierCredits } from "@/hooks/useTierCredits";
+import { Progress } from "@/components/ui/progress";
+import { Card, CardContent } from "@/components/ui/card";
+import { Link, Navigate } from "react-router-dom";
 
 const MAX_PROMPT_LENGTH = 5000;
 
 export default function AIWriter() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [prompt, setPrompt] = useState("");
   const [tone, setTone] = useState("formal");
   const [wordCount, setWordCount] = useState("500");
   const [language, setLanguage] = useState("english");
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  const {
+    creditLimit,
+    creditsUsed,
+    isPremium,
+    loading: creditsLoading,
+    getUpgradeMessage,
+    refetch
+  } = useTierCredits('documents_generated');
+  
+  const canGenerate = creditsUsed < creditLimit;
+
+  if (authLoading || creditsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <Loader2 className="animate-spin h-8 w-8 text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
   const { toast } = useToast();
 
   const handleGenerate = async () => {
@@ -31,6 +60,15 @@ export default function AIWriter() {
       toast({
         title: "Error",
         description: "Please enter a prompt",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!canGenerate) {
+      toast({
+        title: "Credit Limit Reached",
+        description: "You've used all your writing credits for today.",
         variant: "destructive"
       });
       return;
@@ -60,6 +98,8 @@ export default function AIWriter() {
           "writer"
         );
       }
+      
+      refetch(); // Refresh credits
       
       toast({
         title: "Success",
@@ -94,11 +134,11 @@ export default function AIWriter() {
       />
       
       <div className="max-w-4xl mx-auto px-4">
-        <ToolHero
-          icon={PenTool}
-          iconColor="text-amber-500"
-          title="AI Writer"
-          subtitle="Create high-quality content in seconds with AI"
+          <ToolHero
+            icon={PenTool}
+            iconColor="text-amber-500"
+            title="AI Writer"
+            subtitle="Create high-quality content in seconds with AI"
         />
 
         <motion.div
@@ -134,7 +174,40 @@ export default function AIWriter() {
                   onChange={(e) => setWordCount(e.target.value)}
                   placeholder="500"
                   className="h-11 bg-muted/50"
-                />
+          />
+
+          {/* Credits Display */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <Card className="max-w-md mx-auto">
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-amber-500" />
+                    Daily Writing Credits
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    {creditsUsed} / {creditLimit} used
+                  </span>
+                </div>
+                <Progress value={(creditsUsed / creditLimit) * 100} className="h-2" />
+                <div className="flex justify-between items-center mt-2">
+                  <p className="text-xs text-muted-foreground">
+                    {creditLimit - creditsUsed} credits remaining today
+                  </p>
+                  {!isPremium && (
+                    <Link to="/dashboard/subscription" className="text-xs text-primary hover:underline flex items-center gap-1">
+                      <Crown className="w-3 h-3" />
+                      {getUpgradeMessage()}
+                    </Link>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">Language</label>
@@ -156,7 +229,7 @@ export default function AIWriter() {
 
             <Button
               onClick={handleGenerate}
-              disabled={loading || !prompt.trim()}
+              disabled={loading || !prompt.trim() || !canGenerate}
               className="w-full h-12 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white"
               size="lg"
             >
@@ -165,10 +238,15 @@ export default function AIWriter() {
                   <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                   Generating...
                 </>
+              ) : !canGenerate ? (
+                <>
+                  <Zap className="h-5 w-5 mr-2" />
+                  No Credits Remaining
+                </>
               ) : (
                 <>
                   <Wand2 className="h-5 w-5 mr-2" />
-                  Generate Content
+                  Generate Content (1 credit)
                 </>
               )}
             </Button>
