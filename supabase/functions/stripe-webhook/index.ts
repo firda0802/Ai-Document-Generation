@@ -343,6 +343,7 @@ serve(async (req) => {
 
         console.log('Upserting subscription for user:', userId);
         const planType = session.metadata?.plan_type || 'standard';
+        const billingPeriod = session.metadata?.billing_period || 'monthly';
         const isTrialing = subscription.status === 'trialing';
         
         // Upsert subscription record
@@ -353,6 +354,7 @@ serve(async (req) => {
             stripe_customer_id: session.customer as string,
             stripe_subscription_id: session.subscription as string,
             plan_type: planType,
+            billing_period: billingPeriod,
             status: isTrialing ? 'trialing' : 'active',
             current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
