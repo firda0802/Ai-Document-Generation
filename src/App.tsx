@@ -24,6 +24,8 @@ import RefundPolicy from "./pages/RefundPolicy";
 import CookiesPolicy from "./pages/CookiesPolicy";
 import ServicePolicy from "./pages/ServicePolicy";
 import HelpCenter from "./pages/HelpCenter";
+import Feedback from "./pages/Feedback";
+import Status from "./pages/Status";
 import { LiveChatWidget } from "./components/LiveChatWidget";
 import DocumentCreator from "./pages/tools/DocumentCreator";
 import PresentationMaker from "./pages/tools/PresentationMaker";
@@ -64,6 +66,8 @@ function AnimatedRoutes() {
         <Route path="/cookies" element={<PageTransition><CookiesPolicy /></PageTransition>} />
         <Route path="/service-policy" element={<PageTransition><ServicePolicy /></PageTransition>} />
         <Route path="/help" element={<PageTransition><HelpCenter /></PageTransition>} />
+        <Route path="/feedback" element={<PageTransition><Feedback /></PageTransition>} />
+        <Route path="/status" element={<PageTransition><Status /></PageTransition>} />
         
         {/* Main dashboard */}
         <Route path="/dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
