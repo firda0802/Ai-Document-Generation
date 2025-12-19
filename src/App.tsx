@@ -26,6 +26,7 @@ import Voiceover from "./pages/tools/Voiceover";
 import Chat from "./pages/tools/Chat";
 import ChatPDF from "./pages/tools/ChatPDF";
 import WordEditorPage from "./pages/tools/WordEditorPage";
+import ImageGenerator from "./pages/tools/ImageGenerator";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Debug from "./pages/Debug";
@@ -65,6 +66,7 @@ function AnimatedRoutes() {
         <Route path="/tools/chat" element={<PageTransition><Chat /></PageTransition>} />
         <Route path="/tools/chat-pdf" element={<PageTransition><ChatPDF /></PageTransition>} />
         <Route path="/tools/word-editor" element={<PageTransition><WordEditorPage /></PageTransition>} />
+        <Route path="/tools/image-generator" element={<PageTransition><ImageGenerator /></PageTransition>} />
         
         {/* Legacy routes - redirect */}
         <Route path="/tools/ai-writer" element={<Navigate to="/tools/writer" replace />} />

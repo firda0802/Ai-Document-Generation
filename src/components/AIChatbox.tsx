@@ -31,23 +31,38 @@ export const AIChatbox = () => {
   const sendMessage = async (userMessage: Message) => {
     try {
       const headers = await getAuthHeaders();
-      const { data, error } = await supabase.functions.invoke('ai-chat', {
-        body: { messages: [...messages, userMessage] },
-        headers
+      
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          ...headers
+        },
+        body: JSON.stringify({ messages: [...messages, userMessage] })
       });
 
-      if (error) {
-        if (error.message?.includes('429') || error.message?.includes('Rate limit')) {
+      if (!response.ok) {
+        if (response.status === 429) {
           toast({
             title: "Rate Limit Exceeded",
-            description: "Daily chat limit reached. Please upgrade to premium for higher limits.",
+            description: "Please try again later or upgrade to premium for higher limits.",
             variant: "destructive",
           });
           return;
         }
-        throw error;
+        if (response.status === 401) {
+          toast({
+            title: "Authentication Required",
+            description: "Please sign in to use the AI chat.",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw new Error(`Request failed with status ${response.status}`);
       }
 
+      const data = await response.json();
       const assistantContent = data?.choices?.[0]?.message?.content;
       if (assistantContent) {
         setMessages((prev) => [...prev, { role: "assistant", content: assistantContent }]);
