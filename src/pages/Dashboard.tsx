@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate, Link } from "react-router-dom";
+import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   FileText,
@@ -16,14 +16,16 @@ import {
   ImageIcon,
   Video,
   Crown,
+  CheckCircle,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { UsageStats } from "@/components/UsageStats";
 import { useEffect, useState } from "react";
-import { fileHistoryDb, profilesDb } from "@/lib/databaseProxy";
+import { fileHistoryDb, profilesDb, subscriptionsDb } from "@/lib/databaseProxy";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const allTools = [
   {
@@ -113,6 +115,28 @@ export default function Dashboard() {
   const { user, loading } = useAuth();
   const [recentFiles, setRecentFiles] = useState<RecentFile[]>([]);
   const [userName, setUserName] = useState<string>("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [showSuccessBanner, setShowSuccessBanner] = useState(false);
+
+  useEffect(() => {
+    // Handle Stripe success redirect
+    const success = searchParams.get('success');
+    const sessionId = searchParams.get('session_id');
+    
+    if (success === 'true' && sessionId) {
+      setShowSuccessBanner(true);
+      toast.success("🎉 Payment successful! Your subscription is now active.", {
+        duration: 5000,
+        description: "Thank you for subscribing to MyDocMaker!"
+      });
+      
+      // Clear the URL params
+      setSearchParams({});
+      
+      // Hide banner after 10 seconds
+      setTimeout(() => setShowSuccessBanner(false), 10000);
+    }
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -172,6 +196,30 @@ export default function Dashboard() {
         initial="hidden"
         animate="visible"
       >
+        {/* Success Banner */}
+        {showSuccessBanner && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl p-4 flex items-center gap-3 shadow-lg"
+          >
+            <CheckCircle className="h-6 w-6 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="font-semibold">Payment Successful!</h3>
+              <p className="text-sm text-green-100">Your premium subscription is now active. Enjoy all the features!</p>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-white hover:text-green-100 hover:bg-green-600"
+              onClick={() => setShowSuccessBanner(false)}
+            >
+              Dismiss
+            </Button>
+          </motion.div>
+        )}
+
         {/* Welcome Header */}
         <motion.div variants={itemVariants} className="text-center py-8">
           <motion.div 
