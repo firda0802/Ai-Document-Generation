@@ -11,7 +11,8 @@ import {
   FileSearch,
   PenTool,
   BookOpen,
-  FileEdit
+  FileEdit,
+  ImageIcon
 } from "lucide-react";
 
 const tools = [
@@ -104,6 +105,15 @@ const tools = [
     color: "from-indigo-500 to-blue-600",
     bgColor: "bg-indigo-500/10",
     textColor: "text-indigo-500",
+  },
+  {
+    icon: ImageIcon,
+    title: "AI Image Generator",
+    description: "Create stunning images from text descriptions. Generate realistic, artistic, or stylized visuals.",
+    link: "/tools/image-generator",
+    color: "from-pink-500 to-purple-600",
+    bgColor: "bg-pink-500/10",
+    textColor: "text-pink-500",
   },
 ];
 

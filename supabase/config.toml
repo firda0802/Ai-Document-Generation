@@ -15,6 +15,9 @@ verify_jwt = false
 [functions.generate-document-image]
 verify_jwt = false
 
+[functions.generate-image]
+verify_jwt = false
+
 [functions.generate-presentation]
 verify_jwt = false
 
@@ -56,4 +59,3 @@ verify_jwt = false
 
 [functions.health-check]
 verify_jwt = false
-
