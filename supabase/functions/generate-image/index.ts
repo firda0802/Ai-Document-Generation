@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 import { authenticateRequest, unauthorizedResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
@@ -12,7 +13,6 @@ serve(async (req) => {
   }
 
   try {
-    // Authenticate request
     const auth = await authenticateRequest(req);
     
     if (auth.error) {
@@ -22,7 +22,6 @@ serve(async (req) => {
 
     const { userId, isPremium } = auth;
 
-    // Check if user is premium
     if (!isPremium) {
       console.log(`User ${userId} is not premium, denying image generation`);
       return new Response(
@@ -35,12 +34,14 @@ serve(async (req) => {
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const { prompt, style } = await req.json();
+    const { prompt, style, count = 1, saveToGallery = true } = await req.json();
 
     if (!prompt || typeof prompt !== 'string') {
       return new Response(
@@ -49,6 +50,8 @@ serve(async (req) => {
       );
     }
 
+    const batchCount = Math.min(Math.max(1, count), 4); // Max 4 images at once
+    
     // Enhance prompt based on style
     let enhancedPrompt = prompt;
     if (style) {
@@ -63,64 +66,100 @@ serve(async (req) => {
       enhancedPrompt = stylePrompts[style] || prompt;
     }
 
-    console.log(`Generating image for user ${userId} (premium: ${isPremium}), prompt: ${enhancedPrompt.substring(0, 100)}...`);
+    console.log(`Generating ${batchCount} image(s) for user ${userId}, prompt: ${enhancedPrompt.substring(0, 100)}...`);
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
-        messages: [
-          {
-            role: "user",
-            content: enhancedPrompt
+    const generatedImages: Array<{ imageUrl: string; description: string }> = [];
+    const errors: string[] = [];
+
+    // Generate images in parallel
+    const generatePromises = Array(batchCount).fill(null).map(async (_, index) => {
+      try {
+        // Add slight variation to prompt for different results
+        const variedPrompt = batchCount > 1 
+          ? `${enhancedPrompt}. Variation ${index + 1}, unique composition.`
+          : enhancedPrompt;
+
+        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-image-preview",
+            messages: [{ role: "user", content: variedPrompt }],
+            modalities: ["image", "text"]
+          }),
+        });
+
+        if (!response.ok) {
+          if (response.status === 429) {
+            throw new Error("Rate limit exceeded");
           }
-        ],
-        modalities: ["image", "text"]
-      }),
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        const textContent = data.choices?.[0]?.message?.content;
+
+        if (!imageUrl) {
+          throw new Error("No image generated");
+        }
+
+        return { imageUrl, description: textContent || "Image generated successfully" };
+      } catch (error) {
+        console.error(`Error generating image ${index + 1}:`, error);
+        errors.push(error instanceof Error ? error.message : "Unknown error");
+        return null;
+      }
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Lovable AI error:", response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Service temporarily unavailable. Please try again later." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      throw new Error(`AI API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log("AI Response received:", JSON.stringify(data).substring(0, 200));
+    const results = await Promise.all(generatePromises);
     
-    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    const textContent = data.choices?.[0]?.message?.content;
-
-    if (!imageUrl) {
-      console.error("No image URL in response:", JSON.stringify(data));
-      throw new Error("No image generated");
+    for (const result of results) {
+      if (result) {
+        generatedImages.push(result);
+      }
     }
 
-    console.log(`Image generated successfully for user ${userId}`);
+    if (generatedImages.length === 0) {
+      throw new Error(errors[0] || "Failed to generate any images");
+    }
+
+    // Save to gallery if requested
+    if (saveToGallery && generatedImages.length > 0) {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      
+      const galleryEntries = generatedImages.map((img, index) => ({
+        user_id: userId,
+        title: `AI Image ${batchCount > 1 ? `(${index + 1}/${generatedImages.length})` : ''} - ${prompt.substring(0, 50)}`,
+        description: img.description,
+        media_type: 'image',
+        file_url: img.imageUrl,
+        prompt: prompt,
+        style: style || 'default',
+        metadata: { generated_at: new Date().toISOString() }
+      }));
+
+      const { error: insertError } = await supabase
+        .from('generated_media')
+        .insert(galleryEntries);
+
+      if (insertError) {
+        console.error("Error saving to gallery:", insertError);
+      } else {
+        console.log(`Saved ${generatedImages.length} image(s) to gallery for user ${userId}`);
+      }
+    }
+
+    console.log(`Generated ${generatedImages.length} image(s) successfully for user ${userId}`);
 
     return new Response(
       JSON.stringify({
-        imageUrl,
-        description: textContent || "Image generated successfully"
+        images: generatedImages,
+        savedToGallery: saveToGallery,
+        errors: errors.length > 0 ? errors : undefined
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

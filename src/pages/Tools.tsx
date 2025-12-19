@@ -12,7 +12,8 @@ import {
   PenTool,
   BookOpen,
   FileEdit,
-  ImageIcon
+  ImageIcon,
+  Video
 } from "lucide-react";
 
 const tools = [
@@ -109,11 +110,20 @@ const tools = [
   {
     icon: ImageIcon,
     title: "AI Image Generator",
-    description: "Create stunning images from text descriptions. Generate realistic, artistic, or stylized visuals.",
+    description: "Create stunning images from text. Batch generation and AI editing included.",
     link: "/tools/image-generator",
     color: "from-pink-500 to-purple-600",
     bgColor: "bg-pink-500/10",
     textColor: "text-pink-500",
+  },
+  {
+    icon: Video,
+    title: "AI Video Generator",
+    description: "Transform images into videos with AI. 2 free credits, 30 for Pro users.",
+    link: "/tools/video-generator",
+    color: "from-red-500 to-orange-500",
+    bgColor: "bg-red-500/10",
+    textColor: "text-red-500",
   },
 ];
 

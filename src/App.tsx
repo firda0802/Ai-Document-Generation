@@ -27,6 +27,8 @@ import Chat from "./pages/tools/Chat";
 import ChatPDF from "./pages/tools/ChatPDF";
 import WordEditorPage from "./pages/tools/WordEditorPage";
 import ImageGenerator from "./pages/tools/ImageGenerator";
+import VideoGenerator from "./pages/tools/VideoGenerator";
+import Gallery from "./pages/Gallery";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Debug from "./pages/Debug";
@@ -55,7 +57,7 @@ function AnimatedRoutes() {
         <Route path="/settings" element={<PageTransition><Settings /></PageTransition>} />
         <Route path="/dashboard/subscription" element={<PageTransition><Subscription /></PageTransition>} />
         <Route path="/tools" element={<PageTransition><Tools /></PageTransition>} />
-        
+        <Route path="/gallery" element={<PageTransition><Gallery /></PageTransition>} />
         {/* Tools */}
         <Route path="/tools/document-creator" element={<PageTransition><DocumentCreator /></PageTransition>} />
         <Route path="/tools/presentation-maker" element={<PageTransition><PresentationMaker /></PageTransition>} />
@@ -67,7 +69,7 @@ function AnimatedRoutes() {
         <Route path="/tools/chat-pdf" element={<PageTransition><ChatPDF /></PageTransition>} />
         <Route path="/tools/word-editor" element={<PageTransition><WordEditorPage /></PageTransition>} />
         <Route path="/tools/image-generator" element={<PageTransition><ImageGenerator /></PageTransition>} />
-        
+        <Route path="/tools/video-generator" element={<PageTransition><VideoGenerator /></PageTransition>} />
         {/* Legacy routes - redirect */}
         <Route path="/tools/ai-writer" element={<Navigate to="/tools/writer" replace />} />
         <Route path="/tools/ai-story-generator" element={<Navigate to="/tools/story-generator" replace />} />
