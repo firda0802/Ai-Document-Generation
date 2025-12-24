@@ -65,14 +65,40 @@ export default function AIBookCreator() {
 
   // Auto-fill sample data
   const sampleBooks = [
+    // Animals & Nature
     { title: "The Brave Little Fox", character: "A curious little fox named Felix", setting: "A magical forest filled with talking trees", theme: "Overcoming fears and making new friends", moral: "Being brave means facing your fears", age: "3-5" },
-    { title: "Luna's Space Adventure", character: "A dreamy girl named Luna", setting: "Outer space and distant planets", theme: "Exploring the universe and discovering wonder", moral: "Curiosity leads to amazing discoveries", age: "6-8" },
-    { title: "The Friendly Dragon", character: "A kind dragon named Spark", setting: "A medieval kingdom with castles", theme: "Being different and finding acceptance", moral: "True friends accept you for who you are", age: "3-5" },
     { title: "Ocean Friends", character: "A playful dolphin named Splash", setting: "The colorful coral reef", theme: "Teamwork and helping others in need", moral: "Working together makes us stronger", age: "0-2" },
-    { title: "The Magic Garden", character: "A young gardener named Lily", setting: "An enchanted garden where flowers sing", theme: "Learning patience and caring for nature", moral: "Good things come to those who wait", age: "3-5" },
-    { title: "Robot's First Day", character: "A friendly robot named Beep", setting: "A futuristic city with flying cars", theme: "Learning about emotions and friendship", moral: "Everyone needs a friend", age: "6-8" },
     { title: "The Sleepy Bear", character: "A cuddly bear named Bruno", setting: "A cozy forest during autumn", theme: "Preparing for winter and family love", moral: "Family is always there for you", age: "0-2" },
+    { title: "The Magic Garden", character: "A young gardener named Lily", setting: "An enchanted garden where flowers sing", theme: "Learning patience and caring for nature", moral: "Good things come to those who wait", age: "3-5" },
+    
+    // Dinosaurs
+    { title: "Dino's Big Day", character: "A tiny T-Rex named Tiny who wants to be big", setting: "A prehistoric jungle with volcanoes", theme: "Learning that size doesn't matter", moral: "It's not about how big you are, but how big your heart is", age: "3-5" },
+    { title: "The Flying Pterodactyl", character: "A young pterodactyl named Petey who is afraid of heights", setting: "Cliffs and valleys of the dinosaur world", theme: "Conquering fears and believing in yourself", moral: "You can do anything if you believe", age: "3-5" },
+    { title: "Triceratops Makes Friends", character: "A shy triceratops named Trixie", setting: "A lush prehistoric meadow", theme: "Making friends when you feel different", moral: "Everyone has something special to offer", age: "0-2" },
+    { title: "The Dinosaur School", character: "A clever velociraptor named Vicky", setting: "A dinosaur classroom and playground", theme: "Learning and helping classmates", moral: "Sharing knowledge makes everyone smarter", age: "6-8" },
+    
+    // Superheroes
+    { title: "Super Bunny Saves the Day", character: "A bunny with super speed named Zoom", setting: "Carrot City, a bustling animal metropolis", theme: "Using your powers to help others", moral: "True heroes help without expecting anything in return", age: "3-5" },
+    { title: "The Invisible Girl", character: "A shy girl named Maya who can turn invisible", setting: "A colorful school and neighborhood", theme: "Finding confidence and using gifts wisely", moral: "Your uniqueness is your superpower", age: "6-8" },
+    { title: "Captain Kindness", character: "A young boy named Max with the power of kindness", setting: "A city where kindness creates magical effects", theme: "How small acts of kindness change the world", moral: "Kindness is the greatest superpower", age: "3-5" },
+    { title: "The Super Pet Squad", character: "A team of super-powered pets led by Thunder the dog", setting: "A city protected by animal superheroes", theme: "Teamwork and using different abilities together", moral: "Together we are stronger", age: "6-8" },
+    
+    // Fairy Tales
+    { title: "The Little Cloud Princess", character: "A princess named Aurora who lives in the clouds", setting: "A magical kingdom above the clouds", theme: "Bringing rain to help the land below", moral: "Helping others brings true happiness", age: "3-5" },
+    { title: "The Enchanted Shoes", character: "A cobbler's daughter named Rose", setting: "A fairy tale village with magical creatures", theme: "Discovering magic in everyday things", moral: "Magic is all around us if we look", age: "6-8" },
+    { title: "The Brave Knight's Quest", character: "A young knight named Oliver", setting: "A medieval kingdom with dragons and wizards", theme: "A quest to save the kingdom with kindness not swords", moral: "The mightiest weapon is a kind heart", age: "6-8" },
+    { title: "The Fairy's First Wish", character: "A tiny fairy named Dewdrop", setting: "An enchanted forest with magical creatures", theme: "Learning to grant wishes responsibly", moral: "With great power comes great responsibility", age: "3-5" },
+    
+    // Space & Science
+    { title: "Luna's Space Adventure", character: "A dreamy girl named Luna", setting: "Outer space and distant planets", theme: "Exploring the universe and discovering wonder", moral: "Curiosity leads to amazing discoveries", age: "6-8" },
+    { title: "Robot's First Day", character: "A friendly robot named Beep", setting: "A futuristic city with flying cars", theme: "Learning about emotions and friendship", moral: "Everyone needs a friend", age: "6-8" },
+    { title: "The Starlight Express", character: "A train conductor named Stella", setting: "A magical train that travels through galaxies", theme: "Delivering dreams to sleeping children", moral: "Dreams can take you anywhere", age: "3-5" },
+    
+    // Fantasy & Adventure
+    { title: "The Friendly Dragon", character: "A kind dragon named Spark", setting: "A medieval kingdom with castles", theme: "Being different and finding acceptance", moral: "True friends accept you for who you are", age: "3-5" },
     { title: "Pirate Treasure Hunt", character: "A brave pirate cat named Captain Whiskers", setting: "A tropical island with hidden caves", theme: "Adventure and solving puzzles", moral: "The real treasure is the friends we make", age: "9-12" },
+    { title: "The Unicorn's Rainbow", character: "A young unicorn named Sparkle", setting: "A magical valley where rainbows grow", theme: "Spreading joy and color to the world", moral: "One person can brighten many lives", age: "3-5" },
+    { title: "The Mermaid's Song", character: "A curious mermaid named Coral", setting: "An underwater kingdom with sea creatures", theme: "Discovering the world above the waves", moral: "There's a whole world to explore", age: "6-8" },
   ];
 
   const handleAutoFill = () => {
