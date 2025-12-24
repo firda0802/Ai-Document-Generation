@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, BookOpen, Download, ChevronLeft, ChevronRight, Sparkles, Crown } from "lucide-react";
+import { Loader2, BookOpen, Download, ChevronLeft, ChevronRight, Sparkles, Crown, Wand2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,6 +62,33 @@ export default function AIBookCreator() {
   
   const estimatedCredits = calculateCredits('book', parseInt(pageCount));
   const canGenerate = creditsUsed + estimatedCredits <= creditLimit;
+
+  // Auto-fill sample data
+  const sampleBooks = [
+    { title: "The Brave Little Fox", character: "A curious little fox named Felix", setting: "A magical forest filled with talking trees", theme: "Overcoming fears and making new friends", moral: "Being brave means facing your fears", age: "3-5" },
+    { title: "Luna's Space Adventure", character: "A dreamy girl named Luna", setting: "Outer space and distant planets", theme: "Exploring the universe and discovering wonder", moral: "Curiosity leads to amazing discoveries", age: "6-8" },
+    { title: "The Friendly Dragon", character: "A kind dragon named Spark", setting: "A medieval kingdom with castles", theme: "Being different and finding acceptance", moral: "True friends accept you for who you are", age: "3-5" },
+    { title: "Ocean Friends", character: "A playful dolphin named Splash", setting: "The colorful coral reef", theme: "Teamwork and helping others in need", moral: "Working together makes us stronger", age: "0-2" },
+    { title: "The Magic Garden", character: "A young gardener named Lily", setting: "An enchanted garden where flowers sing", theme: "Learning patience and caring for nature", moral: "Good things come to those who wait", age: "3-5" },
+    { title: "Robot's First Day", character: "A friendly robot named Beep", setting: "A futuristic city with flying cars", theme: "Learning about emotions and friendship", moral: "Everyone needs a friend", age: "6-8" },
+    { title: "The Sleepy Bear", character: "A cuddly bear named Bruno", setting: "A cozy forest during autumn", theme: "Preparing for winter and family love", moral: "Family is always there for you", age: "0-2" },
+    { title: "Pirate Treasure Hunt", character: "A brave pirate cat named Captain Whiskers", setting: "A tropical island with hidden caves", theme: "Adventure and solving puzzles", moral: "The real treasure is the friends we make", age: "9-12" },
+  ];
+
+  const handleAutoFill = () => {
+    const randomBook = sampleBooks[Math.floor(Math.random() * sampleBooks.length)];
+    setTitle(randomBook.title);
+    setMainCharacter(randomBook.character);
+    setSetting(randomBook.setting);
+    setTheme(randomBook.theme);
+    setMoral(randomBook.moral);
+    setTargetAge(randomBook.age);
+    
+    toast({
+      title: "Auto-filled!",
+      description: `Using template: "${randomBook.title}"`,
+    });
+  };
 
   if (authLoading || creditsLoading) {
     return (
@@ -415,13 +442,21 @@ export default function AIBookCreator() {
         {/* Form */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              Book Details
-            </CardTitle>
-            <CardDescription>
-              Fill in the details and we'll create a unique picture book for you
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  Book Details
+                </CardTitle>
+                <CardDescription>
+                  Fill in the details and we'll create a unique picture book for you
+                </CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleAutoFill} className="gap-2">
+                <Wand2 className="h-4 w-4" />
+                Auto Fill
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid md:grid-cols-2 gap-4">
