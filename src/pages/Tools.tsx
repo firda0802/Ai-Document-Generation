@@ -16,12 +16,13 @@ import {
   Video,
   Crown,
   Sparkles,
-  Zap
+  Zap,
+  BookOpenCheck
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-// Featured tools - Image & Video generators
+// Featured tools - Image, Video & Book Creator
 const featuredTools = [
   {
     icon: ImageIcon,
@@ -44,6 +45,17 @@ const featuredTools = [
     textColor: "text-red-500",
     badge: "NEW",
     features: ["Image to Video", "Custom Duration", "Auto-Save to Gallery"],
+  },
+  {
+    icon: BookOpenCheck,
+    title: "AI Book Creator",
+    description: "Create beautiful picture books for children with AI-generated illustrations. Download as PDF.",
+    link: "/tools/book-creator",
+    color: "from-purple-500 to-pink-500",
+    bgColor: "bg-purple-500/10",
+    textColor: "text-purple-500",
+    badge: "NEW",
+    features: ["Kids Picture Books", "AI Illustrations", "PDF Download"],
   },
 ];
 
@@ -165,7 +177,7 @@ export default function Tools() {
             <Sparkles className="w-5 h-5 text-amber-500" />
             <h2 className="text-xl font-semibold">Featured AI Tools</h2>
           </div>
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-3 gap-4">
             {featuredTools.map((tool, index) => (
               <Link key={tool.title} to={tool.link}>
                 <Card className={`group h-full border-2 hover:border-primary/50 transition-all overflow-hidden relative`}>
