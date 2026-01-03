@@ -24,6 +24,34 @@
 
 ---
 
+## 📸 SCREENSHOTS
+
+### Dashboard
+<img src="public/screenshots/dashboard.png" alt="Dashboard" width="100%" />
+
+### AI Tools Overview
+<img src="public/screenshots/tools-overview.png" alt="AI Tools" width="100%" />
+
+### Document Generator
+<img src="public/screenshots/document-generator.png" alt="Document Generator" width="100%" />
+
+### Presentation Maker
+<img src="public/screenshots/presentation-maker.png" alt="Presentation Maker" width="100%" />
+
+### Spreadsheet Generator
+<img src="public/screenshots/spreadsheet-maker.png" alt="Spreadsheet Generator" width="100%" />
+
+### AI Image Generator
+<img src="public/screenshots/image-generator.png" alt="Image Generator" width="100%" />
+
+### AI Video Generator
+<img src="public/screenshots/video-generator.png" alt="Video Generator" width="100%" />
+
+### Chat with PDF
+<img src="public/screenshots/chat-pdf.png" alt="Chat PDF" width="100%" />
+
+---
+
 ## 🛠️ THE MYDOCMAKER AI TOOLSET
 
 ### 📄 PROFESSIONAL OFFICE SUITE
@@ -236,7 +264,11 @@ mydocmaker/
 │   │   ├── generate-voiceover/ # Voice synthesis
 │   │   └── chat-pdf/      # PDF analysis
 │   └── config.toml        # Supabase configuration
+├── public/
+│   └── screenshots/       # Application screenshots
 ├── .env.example           # Environment template
+├── requirements.txt       # Package dependencies list
+├── CONTRIBUTING.md        # Contribution guidelines
 ├── tailwind.config.ts     # Tailwind configuration
 └── vite.config.ts         # Vite configuration
 ```
@@ -250,6 +282,12 @@ mydocmaker/
 | **Developer** | Maheer Khan |
 | **Email** | [maheerkhan3a@gmail.com](mailto:maheerkhan3a@gmail.com) |
 | **Inquiries** | Open to Technical Roles, Project Partnerships, or Investment Discussions |
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
