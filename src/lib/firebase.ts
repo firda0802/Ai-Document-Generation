@@ -1,4 +1,4 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp as getExistingApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, GithubAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
@@ -6,53 +6,38 @@ import { getAnalytics } from "firebase/analytics";
 
 // Firebase configuration from environment variables
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "",
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || "",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || ""
 };
 
-let app: ReturnType<typeof initializeApp>;
-let authInstance: ReturnType<typeof getAuth>;
-let dbInstance: ReturnType<typeof getFirestore>;
-let storageInstance: ReturnType<typeof getStorage>;
-
+// Initialize Firebase only if not already initialized
 const getApp = () => {
-  if (!app) {
-    app = initializeApp(firebaseConfig);
+  if (getApps().length === 0) {
+    return initializeApp(firebaseConfig);
   }
-  return app;
+  return getExistingApp();
 };
 
-export const auth = (() => {
-  if (!authInstance) {
-    authInstance = getAuth(getApp());
-  }
-  return authInstance;
-})();
+const app = getApp();
 
-export const db = (() => {
-  if (!dbInstance) {
-    dbInstance = getFirestore(getApp());
-  }
-  return dbInstance;
-})();
-
-export const storage = (() => {
-  if (!storageInstance) {
-    storageInstance = getStorage(getApp());
-  }
-  return storageInstance;
-})();
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
 
 // Lazy load analytics to prevent initialization issues
 export const getAnalyticsInstance = () => {
   if (typeof window !== 'undefined') {
-    return getAnalytics(getApp());
+    try {
+      return getAnalytics(app);
+    } catch {
+      return null;
+    }
   }
   return null;
 };
